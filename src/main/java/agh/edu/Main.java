@@ -1,6 +1,6 @@
-package org.example;
+package agh.edu;
 
-import org.example.lab1.Matrix;
+import agh.edu.lab1.Matrix;
 
 public class Main {
     public static void main(String[] args) throws Exception {
