@@ -59,104 +59,167 @@ public class Matrix {
         return result;
     }
 
-    public Matrix binet_mul(final Matrix B) throws Exception {
+    static float[][] add(final float[][] A, final float[][] B) {
+        int rowsA = A.length;
+        int colsA = A[0].length;
+        int rowsB = B.length;
+        int colsB = B[0].length;
+
+        if (colsA != colsB || rowsA != rowsB) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
+
+        float[][] result = new float[rowsA][colsB];
+
+        for (int i = 0; i < rowsA; i++) {
+            for (int j = 0; j < colsB; j++) {
+                result[i][j] += A[i][j] + B[i][j];
+            }
+        }
+
+        return result;
+    }
+
+    public Matrix binet_mul(final Matrix B, int l) throws Exception {
         if(this.cols != B.rows) throw new IllegalArgumentException("Matrix A cols must be equal matrix B rows");
         Matrix ans = new Matrix(this.rows, B.cols);
 
-        ans.matrix = binet_mul(this.getMatrix(), B.getMatrix());
+        ans.matrix = binet_mul(this.getMatrix(), B.getMatrix(), l);
         return ans;
     }
 
-    static float[][] binet_mul(final float[][] A, final float[][] B) {
+    static float[][] binet_mul(final float[][] A, final float[][] B, int l) throws Exception{
         int rowsA = A.length;
         int colsA = A[0].length;
         int rowsB = B.length;
         int colsB = B[0].length;
 
         if (colsA != rowsB) throw new IllegalArgumentException("Matrix A cols must be equal matrix B rows");
-        float[][] result = new float[rowsA][colsB];
 
-        if(rowsA == 1 && colsB == 1){//if we only have vectors we multiply them as normal else divide
+        if(rowsA <= l && colsA <= l && colsB <= l){//matrix is small enough to mul it like normal
             return mul(A, B);
         }
         else{
-            int aHalf = Math.max(rowsA / 2, 1);
-            int bHalf = Math.max(colsB / 2, 1);
-            if (aHalf == rowsA){ //we just need to divide B, A is already a vector
-                float[][] firstHalf = new float[rowsB][bHalf];
-                float[][] secondHalf = new float[rowsB][colsB - bHalf];
-
-
-                for(int i = 0 ; i < rowsB; i++){
-                    for(int j = 0 ; j < bHalf ; j++){
-                        firstHalf[i][j] = B[i][j];
-                    }
-                }
-                for(int i = 0 ; i < rowsB; i++){
-                    for(int j = 0 ; j < colsB - bHalf ; j++){
-                        secondHalf[i][j] = B[i][j + bHalf];
-                    }
-                }
-
-                return mergeHorizontal(binet_mul(A,firstHalf),binet_mul(A,secondHalf));
+            int aColHalf = 0, aRowHalf = 0, bColHalf = 0, bRowHalf = 0;
+            if (colsA > l) aColHalf = colsA / 2;
+            if (rowsA > l) aRowHalf = rowsA / 2;
+            if (colsB > l) bColHalf = colsB / 2;
+            if (rowsB > l) bRowHalf = rowsB / 2;
+            if(aRowHalf != 0 && aColHalf == 0 && bColHalf == 0 && bRowHalf == 0){//just divide A horizontally
+                Matrix[] split = sliceHorizontal(A, aRowHalf);
+                return mergeVertical(binet_mul(split[0].getMatrix(), B, l), binet_mul(split[1].getMatrix(), B, l));
             }
-            if (bHalf == colsB){ //we just need to divide A, B is already a vector
-                float[][] firstHalf = new float[aHalf][colsA];
-                float[][] secondHalf = new float[rowsA - aHalf][colsA];
-                for(int i = 0 ; i < aHalf; i++){
-                    for(int j = 0 ; j < colsA ; j++){
-                        firstHalf[i][j] = A[i][j];
-                    }
-                }
-                for(int i = 0 ; i < rowsA - aHalf; i++){
-                    for(int j = 0 ; j < colsA ; j++){
-                        secondHalf[i][j] = A[i + aHalf][j];
-                    }
-                }
-                return mergeVertical(binet_mul(firstHalf,B),binet_mul(secondHalf,B));
+            if(aRowHalf == 0 && aColHalf == 0 && bColHalf != 0 && bRowHalf == 0){//just divide B vertically
+                Matrix[] split = sliceVertical(B, bColHalf);
+                return mergeHorizontal(binet_mul(A, split[0].getMatrix(), l), binet_mul(A, split[1].getMatrix(), l));
             }
-            else{//neither of matrices are vectors, we need to divide them both
-                float[][] firstHalf = new float[aHalf][colsA];
-                float[][] secondHalf = new float[rowsA - aHalf][colsA];
-                float[][] thirdHalf = new float[rowsB][bHalf];
-                float[][] forthHalf = new float[rowsB][colsB - bHalf];
-                for(int i = 0 ; i < aHalf; i++){
-                    for(int j = 0 ; j < colsA ; j++){
-                        firstHalf[i][j] = A[i][j];
-                    }
-                }
-                for(int i = 0 ; i < rowsA - aHalf; i++){
-                    for(int j = 0 ; j < colsA ; j++){
-                        secondHalf[i][j] = A[i + aHalf][j];
-                    }
-                }
-                for(int i = 0 ; i < rowsB; i++){
-                    for(int j = 0 ; j < bHalf ; j++){
-                        thirdHalf[i][j] = B[i][j];
-                    }
-                }
-                for(int i = 0 ; i < rowsB; i++){
-                    for(int j = 0 ; j < colsB - bHalf ; j++){
-                        forthHalf[i][j] = B[i][j + bHalf];
-                    }
-                }
-                return mergeVertical(mergeHorizontal(binet_mul(firstHalf, thirdHalf), binet_mul(firstHalf, forthHalf)),mergeHorizontal(binet_mul(secondHalf, thirdHalf),binet_mul(secondHalf, forthHalf)));
+            if(aRowHalf != 0 && aColHalf == 0 && bColHalf != 0 && bRowHalf == 0){//A horizontally, B vertically
+                Matrix[] splitA = sliceHorizontal(A, aRowHalf);
+                Matrix[] splitB = sliceVertical(B, bColHalf);
+                return mergeVertical(
+                        mergeHorizontal(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[0].getMatrix(), splitB[1].getMatrix(), l)),
+                        mergeHorizontal(binet_mul(splitA[1].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l))
+                );
+            }
+            if(aRowHalf == 0 && aColHalf != 0 && bColHalf == 0 && bRowHalf != 0){//A vertically, B horizontally
+                Matrix[] splitA = sliceVertical(A, aColHalf);
+                Matrix[] splitB = sliceHorizontal(B, bRowHalf);
+                return add(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l));
+            }
+            if(aRowHalf == 0 && aColHalf != 0 && bColHalf != 0 && bRowHalf != 0){//A vertically, B both
+                Matrix[] splitA = sliceVertical(A, aColHalf);
+                Matrix[] splitB = sliceBoth(B, bRowHalf, bColHalf);
+                return add(
+                        mergeHorizontal(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l),binet_mul(splitA[0].getMatrix(), splitB[1].getMatrix(), l)),
+                        mergeHorizontal(binet_mul(splitA[1].getMatrix(), splitB[2].getMatrix(), l),binet_mul(splitA[1].getMatrix(), splitB[3].getMatrix(), l))
+                );
+            }
+            if(aRowHalf != 0 && aColHalf != 0 && bColHalf == 0 && bRowHalf != 0){//A both, B horizontally
+                Matrix[] splitA = sliceBoth(A, aRowHalf, aColHalf);
+                Matrix[] splitB = sliceHorizontal(B, bRowHalf);
+                return add(
+                        mergeVertical(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[2].getMatrix(), splitB[0].getMatrix(), l)),
+                        mergeVertical(binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l), binet_mul(splitA[3].getMatrix(), splitB[1].getMatrix(), l))
+                );
+            }
+            if(aRowHalf != 0 && aColHalf != 0 && bColHalf != 0 && bRowHalf != 0){//A both, B both
+                Matrix[] splitA = sliceBoth(A, aRowHalf, aColHalf);
+                Matrix[] splitB = sliceBoth(B, bRowHalf, bColHalf);
+                return mergeVertical(
+                        mergeHorizontal(
+                                add(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l),binet_mul(splitA[1].getMatrix(), splitB[2].getMatrix(), l)),
+                                add(binet_mul(splitA[0].getMatrix(), splitB[1].getMatrix(), l),binet_mul(splitA[1].getMatrix(), splitB[3].getMatrix(), l))
+                        ),
+                        mergeHorizontal(
+                                add(binet_mul(splitA[2].getMatrix(), splitB[0].getMatrix(), l),binet_mul(splitA[3].getMatrix(), splitB[2].getMatrix(), l)),
+                                add(binet_mul(splitA[2].getMatrix(), splitB[1].getMatrix(), l),binet_mul(splitA[3].getMatrix(), splitB[3].getMatrix(), l))
+                        )
+                );
+            }
+            else{
+                throw new Exception("Something went terribly wrong");
             }
         }
+    }
+    static public Matrix[] sliceVertical(final float[][] M, int sliceIndex) throws Exception{
+        float[][] firstHalf = new float[M.length][sliceIndex];
+        float[][] secondHalf = new float[M.length][M[0].length - sliceIndex];
+        Matrix[] res = new Matrix[2];
+        for(int i = 0 ; i < M.length; i++){
+            System.arraycopy(M[i], 0, firstHalf[i], 0, sliceIndex);
+        }
+        for(int i = 0 ; i < M.length; i++){
+            System.arraycopy(M[i], sliceIndex, secondHalf[i], 0, M[0].length - sliceIndex);
+        }
+        res[0] = new Matrix(firstHalf);
+        res[1] = new Matrix(secondHalf);
+        return res;
+    }
+    static public Matrix[] sliceHorizontal(final float[][] M, int sliceIndex) throws Exception{
+        float[][] firstHalf = new float[sliceIndex][M[0].length];
+        float[][] secondHalf = new float[M.length - sliceIndex][M[0].length];
+        Matrix[] res = new Matrix[2];
+        for(int i = 0 ; i < sliceIndex; i++){
+            System.arraycopy(M[i], 0, firstHalf[i], 0, M[0].length);
+        }
+        for(int i = 0 ; i < M.length - sliceIndex; i++){
+            System.arraycopy(M[i + sliceIndex], 0, secondHalf[i], 0, M[0].length);
+        }
+        res[0] = new Matrix(firstHalf);
+        res[1] = new Matrix(secondHalf);
+        return res;
+    }
+    static public Matrix[] sliceBoth(final float[][] M, int sliceRowIndex, int sliceColIndex) throws Exception{
+        float[][] firstHalf = new float[sliceRowIndex][sliceColIndex];
+        float[][] secondHalf = new float[sliceRowIndex][M[0].length - sliceColIndex];
+        float[][] thirdHalf = new float[M.length - sliceRowIndex][sliceColIndex];
+        float[][] forthHalf = new float[M.length - sliceRowIndex][M[0].length - sliceColIndex];
+        Matrix[] res = new Matrix[4];
+        for(int i = 0 ; i < sliceRowIndex; i++){
+            System.arraycopy(M[i], 0, firstHalf[i], 0, sliceColIndex);
+        }
+        for(int i = 0 ; i < sliceRowIndex; i++){
+            System.arraycopy(M[i], sliceColIndex, secondHalf[i], 0, M[0].length - sliceColIndex);
+        }
+        for(int i = 0 ; i < M.length - sliceRowIndex; i++){
+            System.arraycopy(M[i + sliceRowIndex], 0, thirdHalf[i], 0, sliceColIndex);
+        }
+        for(int i = 0 ; i < M.length - sliceRowIndex; i++){
+            System.arraycopy(M[i + sliceRowIndex], sliceColIndex, forthHalf[i], 0, M[0].length - sliceColIndex);
+        }
+        res[0] = new Matrix(firstHalf);
+        res[1] = new Matrix(secondHalf);
+        res[2] = new Matrix(thirdHalf);
+        res[3] = new Matrix(forthHalf);
+        return res;
     }
 
     static public float[][] mergeVertical(final float[][] A, final float[][] B){//merge two matrices bottom to top
         if (A[0].length != B[0].length) throw new IllegalArgumentException("Cannot vertically merge two matrices with different number of cols");
         float[][] res = new float[A.length + B.length][A[0].length];
         for(int i = 0 ; i < A.length; i++){
-            for(int j = 0 ; j < A[0].length ; j++){
-                res[i][j] = A[i][j];
-            }
+            System.arraycopy(A[i], 0, res[i], 0, A[0].length);
         }
         for(int i = 0 ; i < B.length; i++){
-            for(int j = 0 ; j < B[0].length ; j++){
-                res[i + A.length][j] = B[i][j];
-            }
+            System.arraycopy(B[i], 0, res[i + A.length], 0, B[0].length);
         }
         return res;
 
@@ -166,14 +229,10 @@ public class Matrix {
         if (A.length != B.length) throw new IllegalArgumentException("Cannot horizontally merge two matrices with different number of rows");
         float[][] res = new float[A.length][A[0].length + B[0].length];
         for(int i = 0 ; i < A.length; i++){
-            for(int j = 0 ; j < A[0].length ; j++){
-                res[i][j] = A[i][j];
-            }
+            System.arraycopy(A[i], 0, res[i], 0, A[0].length);
         }
         for(int i = 0 ; i < B.length; i++){
-            for(int j = 0 ; j < B[0].length ; j++){
-                res[i][j + A[0].length] = B[i][j];
-            }
+            System.arraycopy(B[i], 0, res[i], A[0].length, B[0].length);
         }
         return res;
     }

@@ -15,7 +15,7 @@ public class FileSaver {
         this.absolutePath = new File(".").getAbsolutePath();
         try {
             writer = new FileWriter(fileName);
-            writer.write("Dimension;Time(nanoseconds);Method;\n");
+            writer.write("Dimension(2^x);Time(nanoseconds);Threshold;\n");
             writer.flush();
         } catch (FileNotFoundException e) {
             System.out.println("File " + fileName + " not found in " + absolutePath);
@@ -32,7 +32,7 @@ public class FileSaver {
             writer.write(toWrite);
             writer.flush();
         } catch (Exception e) {
-            System.out.println("An error occured (" + fileName + ")");
+            System.out.println("An error occurred (" + fileName + ")");
             e.printStackTrace();
         }
     }
