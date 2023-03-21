@@ -278,7 +278,70 @@ public class Matrix {
 
     public Matrix recursiveInverse() throws Exception
     {
-        return new Matrix(1,1);
+        return new Matrix(recursiveInverse(this.matrix));
+    }
+
+    static public float[][] recursiveInverse(float[][] matrix) throws Exception
+    {
+        if(determinant(matrix) == 0)
+            return new float[1][1];
+
+        float[][] ans = new float[matrix.length][matrix.length];
+        fillDiagonal(ans, 1);
+
+        float tmp;
+
+        if(matrix.length == 2)
+        {
+            tmp = matrix[0][0];
+            ans[0][0] /= tmp;
+            ans[0][1] /= tmp;
+
+            final float x = matrix[0][1] / tmp;
+
+            tmp = matrix[1][0];
+            ans[1][0] -= tmp * ans[0][0];
+            ans[1][1] -= tmp * ans[0][1];
+
+            final float y = matrix[1][1] - tmp * x;
+
+            ans[1][0] /= y;
+            ans[1][1] /= y;
+
+            ans[0][0] -= x * ans[1][0];
+            ans[0][1] -= x * ans[1][1];
+        }
+
+        return ans;
+    }
+
+    //    static private float[][] recursiveInverse_(float[][] matrix) throws Exception
+//    {
+//        float[][] ans = new float[matrix.length][matrix.length];
+//
+//        if(matrix.length == 2)
+//        {
+//
+//        }
+//        else
+//        {
+//
+//        }
+//    }
+
+    public void fillDiagonal(float fillament)
+    {
+        fillDiagonal(this.matrix, fillament);
+    }
+
+    static public void fillDiagonal(float[][] matrix, float fillament)
+    {
+        int max = matrix.length;
+        if(max > matrix[0].length) max = matrix[0].length;
+        for(int i = 0; i < max; i++)
+        {
+            matrix[i][i] = fillament;
+        }
     }
 
     public int getRows() {
@@ -295,14 +358,14 @@ public class Matrix {
 
     @Override
     public String toString() {
-        String matrix = "";
+        String matrix = "\n";
         for(float[] arr : this.matrix){
-            matrix += " " + Arrays.toString(arr);
+            matrix += " " + Arrays.toString(arr) + '\n';
         }
         return "Matrix{" +
                 "rows=" + rows +
                 ", cols=" + cols +
-                ", matrix=[" + matrix +
+                ", \nmatrix=[" + matrix +
                 "] }";
     }
 

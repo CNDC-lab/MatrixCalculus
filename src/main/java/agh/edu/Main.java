@@ -26,8 +26,21 @@ public class Main {
 //        }
 
         float[][] mat = {{1,2,3,2},{5,5,6,1},{8,8,9,10},{4,6,3,7}};
+        float[][] mat2 = {{1,2,1,2},{2,2,1,1},{1,1,1,2},{2,2,2,2}};
+        float[][] mat3 = {{2,2},{3,1}};
 
-        Matrix matrix = new Matrix(mat);
+        Matrix matrix = new Matrix(mat3);
         System.out.println(matrix.determinant());
+
+        double tmp = 0;
+
+        for(int i=0; i < 100000; i++){
+            long start = System.nanoTime();
+            matrix.recursiveInverse();
+            long end = System.nanoTime();
+            tmp += (end - start)/1000;
+        }
+
+        System.out.println("DONE : " + Double.toString(tmp));
     }
 }
