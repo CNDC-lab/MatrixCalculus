@@ -78,6 +78,39 @@ public class Matrix {
         return result;
     }
 
+    public Matrix sub(final Matrix B)
+    {
+        if (this.cols != B.cols || this.rows != B.rows) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
+        Matrix result = new Matrix(this.rows, B.cols);
+
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < B.cols; j++) {
+                result.matrix[i][j] += this.matrix[i][j] - B.matrix[i][j];
+            }
+        }
+
+        return result;
+    }
+
+    static float[][] sub(final float[][] A, final float[][] B) {
+        int rowsA = A.length;
+        int colsA = A[0].length;
+        int rowsB = B.length;
+        int colsB = B[0].length;
+
+        if (colsA != colsB || rowsA != rowsB) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
+
+        float[][] result = new float[rowsA][colsB];
+
+        for (int i = 0; i < rowsA; i++) {
+            for (int j = 0; j < colsB; j++) {
+                result[i][j] += A[i][j] - B[i][j];
+            }
+        }
+
+        return result;
+    }
+
     public Matrix binet_mul(final Matrix B, int l) throws Exception {
         if(this.cols != B.rows) throw new IllegalArgumentException("Matrix A cols must be equal matrix B rows");
         Matrix ans = new Matrix(this.rows, B.cols);
@@ -281,19 +314,21 @@ public class Matrix {
         return new Matrix(recursiveInverse(this.matrix));
     }
 
-    static public float[][] recursiveInverse(float[][] matrix) throws Exception
+        static public float[][] recursiveInverse(float[][] matrix) throws Exception
     {
-        if(determinant(matrix) == 0)
-            return new float[1][1];
+        if(determinant(matrix) == 0) throw new Exception("The determinant of Matrix is equal 0, can not inverse matrix");
+        if((matrix.length & matrix.length - 1) != 0) throw new Exception("The matrix must be size of 2^n x 2^n");
+        return recursiveInverse_(matrix);
+    }
 
+    static float[][] recursiveInverse_(float[][] matrix) throws Exception
+    {
         float[][] ans = new float[matrix.length][matrix.length];
         fillDiagonal(ans, 1);
 
-        float tmp;
-
         if(matrix.length == 2)
         {
-            tmp = matrix[0][0];
+            float tmp = matrix[0][0];
             ans[0][0] /= tmp;
             ans[0][1] /= tmp;
 
@@ -310,24 +345,50 @@ public class Matrix {
 
             ans[0][0] -= x * ans[1][0];
             ans[0][1] -= x * ans[1][1];
+
+            return ans;
         }
 
-        return ans;
-    }
+        Matrix[] splited = sliceBoth(matrix, matrix.length / 2, matrix.length / 2);
+        Matrix[] splitedAns = sliceBoth(ans, ans.length / 2, ans.length / 2);
 
-    //    static private float[][] recursiveInverse_(float[][] matrix) throws Exception
-//    {
-//        float[][] ans = new float[matrix.length][matrix.length];
-//
-//        if(matrix.length == 2)
-//        {
-//
-//        }
-//        else
-//        {
-//
-//        }
-//    }
+        //1 Step
+        Matrix A_11_inv = new Matrix(recursiveInverse_(splited[0].matrix));
+
+        //2 Step
+        splited[0] = A_11_inv.binet_mul(splited[0], 7); //l = 7 is most efficient
+        splited[1] = A_11_inv.binet_mul(splited[1], 7);
+
+        splitedAns[0] = A_11_inv.binet_mul(splitedAns[0], 7);
+
+        //3 Step
+        splitedAns[2] = splitedAns[2].sub(splited[2].binet_mul(splitedAns[0], 7));
+        splitedAns[3] = splitedAns[3].sub(splited[2].binet_mul(splitedAns[1], 7));
+
+        splited[3] = splited[3].sub(splited[2].binet_mul(splited[1], 7));
+        splited[2] = splited[2].sub(splited[2].binet_mul(splited[0], 7));
+
+        //4 Step
+        Matrix S_22_inv = new Matrix(recursiveInverse_(splited[3].matrix));
+
+        //5 Step
+        splited[2] = S_22_inv.binet_mul(splited[2], 7);
+        splited[3] = S_22_inv.binet_mul(splited[3], 7);
+
+        splitedAns[2] = S_22_inv.binet_mul(splitedAns[2], 7);
+        splitedAns[3] = S_22_inv.binet_mul(splitedAns[3], 7);
+
+        //6 Step
+        splitedAns[0] = splitedAns[0].sub(splited[1].binet_mul(splitedAns[2], 7));
+        splitedAns[1] = splitedAns[1].sub(splited[1].binet_mul(splitedAns[3], 7));
+
+        splited[1] = splited[1].sub(splited[1].binet_mul(splited[3], 7));
+
+        return mergeVertical(
+                mergeHorizontal(splitedAns[0].matrix, splitedAns[1].matrix),
+                mergeHorizontal(splitedAns[2].matrix, splitedAns[3].matrix)
+        );
+    }
 
     public void fillDiagonal(float fillament)
     {
