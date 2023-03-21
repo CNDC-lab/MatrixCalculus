@@ -159,6 +159,7 @@ public class Matrix {
             }
         }
     }
+
     static public Matrix[] sliceVertical(final float[][] M, int sliceIndex) throws Exception{
         float[][] firstHalf = new float[M.length][sliceIndex];
         float[][] secondHalf = new float[M.length][M[0].length - sliceIndex];
@@ -173,6 +174,7 @@ public class Matrix {
         res[1] = new Matrix(secondHalf);
         return res;
     }
+
     static public Matrix[] sliceHorizontal(final float[][] M, int sliceIndex) throws Exception{
         float[][] firstHalf = new float[sliceIndex][M[0].length];
         float[][] secondHalf = new float[M.length - sliceIndex][M[0].length];
@@ -187,6 +189,7 @@ public class Matrix {
         res[1] = new Matrix(secondHalf);
         return res;
     }
+
     static public Matrix[] sliceBoth(final float[][] M, int sliceRowIndex, int sliceColIndex) throws Exception{
         float[][] firstHalf = new float[sliceRowIndex][sliceColIndex];
         float[][] secondHalf = new float[sliceRowIndex][M[0].length - sliceColIndex];
@@ -235,6 +238,47 @@ public class Matrix {
             System.arraycopy(B[i], 0, res[i], A[0].length, B[0].length);
         }
         return res;
+    }
+
+    public float determinant() throws Exception
+    {
+        if(this.rows != this.cols) throw new Exception("Matrix must be square");
+
+        return determinant(this.matrix);
+    }
+
+    static public float determinant(float[][] matrix) throws Exception
+    {
+        int n = matrix.length;
+
+        if(n != matrix[0].length) throw new Exception("Matrix must be square");
+
+        float det = 0;
+        if (n == 1) {
+            det = matrix[0][0];
+        } else if (n == 2) {
+            det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        } else {
+            for (int i = 0; i < n; i++) {
+                float[][] submatrix = new float[n - 1][n - 1];
+                for (int j = 1; j < n; j++) {
+                    for (int k = 0; k < n; k++) {
+                        if (k < i) {
+                            submatrix[j - 1][k] = matrix[j][k];
+                        } else if (k > i) {
+                            submatrix[j - 1][k - 1] = matrix[j][k];
+                        }
+                    }
+                }
+                det += matrix[0][i] * Math.pow(-1, i) * determinant(submatrix);
+            }
+        }
+        return det;
+    }
+
+    public Matrix recursiveInverse() throws Exception
+    {
+        return new Matrix(1,1);
     }
 
     public int getRows() {
