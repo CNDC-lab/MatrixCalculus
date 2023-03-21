@@ -23,6 +23,15 @@ public class Matrix {
         this.matrix = matrix;
     }
 
+    public void mulScalar(final float a)
+    {
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < this.cols; j++) {
+                matrix[i][j] *= a;
+            }
+        }
+    }
+
     public Matrix mul(final Matrix B) throws Exception {
         if(this.cols != B.rows) throw new IllegalArgumentException("Matrix A cols must be equal matrix B rows");
         Matrix ans = new Matrix(this.rows, B.cols);
@@ -53,6 +62,20 @@ public class Matrix {
                 for (int k = 0; k < colsA; k++) {
                     result[i][j] += A[i][k] * B[k][j];
                 }
+            }
+        }
+
+        return result;
+    }
+
+    public Matrix add(final Matrix B)
+    {
+        if (this.cols != B.cols || this.rows != B.rows) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
+        Matrix result = new Matrix(this.rows, B.cols);
+
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < B.cols; j++) {
+                result.matrix[i][j] += this.matrix[i][j] + B.matrix[i][j];
             }
         }
 
@@ -109,6 +132,11 @@ public class Matrix {
         }
 
         return result;
+    }
+
+    public Matrix binet_mul(final Matrix B) throws Exception
+    {
+        return binet_mul(B, 7);
     }
 
     public Matrix binet_mul(final Matrix B, int l) throws Exception {
@@ -356,33 +384,18 @@ public class Matrix {
         Matrix A_11_inv = new Matrix(recursiveInverse_(splited[0].matrix));
 
         //2 Step
-        splited[0] = A_11_inv.binet_mul(splited[0], 7); //l = 7 is most efficient
-        splited[1] = A_11_inv.binet_mul(splited[1], 7);
-
-        splitedAns[0] = A_11_inv.binet_mul(splitedAns[0], 7);
+        Matrix S_22 = new Matrix(splited[3].sub(splited[2].binet_mul(A_11_inv.binet_mul(splited[1]))));
 
         //3 Step
-        splitedAns[2] = splitedAns[2].sub(splited[2].binet_mul(splitedAns[0], 7));
-        splitedAns[3] = splitedAns[3].sub(splited[2].binet_mul(splitedAns[1], 7));
-
-        splited[3] = splited[3].sub(splited[2].binet_mul(splited[1], 7));
-        splited[2] = splited[2].sub(splited[2].binet_mul(splited[0], 7));
+        Matrix S_22_inv = new Matrix(recursiveInverse_(S_22.matrix));
 
         //4 Step
-        Matrix S_22_inv = new Matrix(recursiveInverse_(splited[3].matrix));
-
-        //5 Step
-        splited[2] = S_22_inv.binet_mul(splited[2], 7);
-        splited[3] = S_22_inv.binet_mul(splited[3], 7);
-
-        splitedAns[2] = S_22_inv.binet_mul(splitedAns[2], 7);
-        splitedAns[3] = S_22_inv.binet_mul(splitedAns[3], 7);
-
-        //6 Step
-        splitedAns[0] = splitedAns[0].sub(splited[1].binet_mul(splitedAns[2], 7));
-        splitedAns[1] = splitedAns[1].sub(splited[1].binet_mul(splitedAns[3], 7));
-
-        splited[1] = splited[1].sub(splited[1].binet_mul(splited[3], 7));
+        splitedAns[0] = A_11_inv.binet_mul(splitedAns[0].add(splited[1].binet_mul(S_22_inv.binet_mul(splited[2].binet_mul(A_11_inv)))));
+        splitedAns[1] = A_11_inv.binet_mul(splited[1].binet_mul(S_22_inv));
+        splitedAns[1].mulScalar(-1);
+        splitedAns[2] = S_22_inv.binet_mul(splited[2].binet_mul(A_11_inv));
+        splitedAns[2].mulScalar(-1);
+        splitedAns[3] = S_22_inv;
 
         return mergeVertical(
                 mergeHorizontal(splitedAns[0].matrix, splitedAns[1].matrix),
