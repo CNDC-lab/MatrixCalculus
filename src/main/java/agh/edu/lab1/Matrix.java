@@ -310,31 +310,63 @@ public class Matrix {
 
     static public float determinant(float[][] matrix) throws Exception
     {
-        int n = matrix.length;
+        int index, n = matrix.length;
+        float num1, num2, total = 1, det = 1;
 
-        if(n != matrix[0].length) throw new Exception("Matrix must be square");
+        float[] temp = new float[n + 1];
 
-        float det = 0;
-        if (n == 1) {
-            det = matrix[0][0];
-        } else if (n == 2) {
-            det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-        } else {
-            for (int i = 0; i < n; i++) {
-                float[][] submatrix = new float[n - 1][n - 1];
-                for (int j = 1; j < n; j++) {
-                    for (int k = 0; k < n; k++) {
-                        if (k < i) {
-                            submatrix[j - 1][k] = matrix[j][k];
-                        } else if (k > i) {
-                            submatrix[j - 1][k - 1] = matrix[j][k];
-                        }
-                    }
+        if(n == 2)
+        {
+            return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        }
+        for (int i = 0; i < n; i++)
+        {
+            index = i;
+
+            while (index < n && matrix[index][i] == 0)
+            {
+                index++;
+            }
+            if (index == n)
+            {
+                continue;
+            }
+            if (index != i)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    swap(matrix, index, j, i, j);
                 }
-                det += matrix[0][i] * Math.pow(-1, i) * determinant(submatrix);
+                det = (int)(det * Math.pow(-1, index - i));
+            }
+
+            System.arraycopy(matrix[i], 0, temp, 0, n);
+
+            for (int j = i + 1; j < n; j++)
+            {
+                num1 = temp[i];
+                num2 = matrix[j][i];
+
+                for (int k = 0; k < n; k++)
+                {
+                    matrix[j][k] = (num1 * matrix[j][k])
+                            - (num2 * temp[k]);
+                }
+                total = total * num1;
             }
         }
-        return det;
+        for (int i = 0; i < n; i++)
+        {
+            det = det * matrix[i][i];
+        }
+        return (det / total);
+    }
+
+    static void swap(float[][] arr, int i1, int j1, int i2, int j2)
+    {
+        float temp = arr[i1][j1];
+        arr[i1][j1] = arr[i2][j2];
+        arr[i2][j2] = temp;
     }
 
     public Matrix recursiveInverse() throws Exception
@@ -344,8 +376,12 @@ public class Matrix {
 
         static public float[][] recursiveInverse(float[][] matrix) throws Exception
     {
-        if(determinant(matrix) == 0) throw new Exception("The determinant of Matrix is equal 0, can not inverse matrix");
         if((matrix.length & matrix.length - 1) != 0) throw new Exception("The matrix must be size of 2^n x 2^n");
+        float[][] det = new float[matrix.length][matrix.length];
+        for(int i = 0 ; i < matrix.length; i++){
+            System.arraycopy(matrix[i], 0, det[i], 0, matrix[0].length);
+        }
+        if(determinant(det) == 0) throw new Exception("The matrix must have non 0 determination");
         return recursiveInverse_(matrix);
     }
 
@@ -356,23 +392,12 @@ public class Matrix {
 
         if(matrix.length == 2)
         {
-            float tmp = matrix[0][0];
-            ans[0][0] /= tmp;
-            ans[0][1] /= tmp;
+            float det = determinant(matrix); // n == 2 => [[a, b][c, d]] a*d - b*c => 3 operacje
 
-            final float x = matrix[0][1] / tmp;
-
-            tmp = matrix[1][0];
-            ans[1][0] -= tmp * ans[0][0];
-            ans[1][1] -= tmp * ans[0][1];
-
-            final float y = matrix[1][1] - tmp * x;
-
-            ans[1][0] /= y;
-            ans[1][1] /= y;
-
-            ans[0][0] -= x * ans[1][0];
-            ans[0][1] -= x * ans[1][1];
+            ans[0][0] = matrix[1][1] / det;
+            ans[0][1] = - matrix[0][1] / det;
+            ans[1][1] = matrix[0][0] / det;
+            ans[1][0] = - matrix[1][0] / det;
 
             return ans;
         }
@@ -432,9 +457,9 @@ public class Matrix {
 
     @Override
     public String toString() {
-        String matrix = "\n";
+        StringBuilder matrix = new StringBuilder("\n");
         for(float[] arr : this.matrix){
-            matrix += " " + Arrays.toString(arr) + '\n';
+            matrix.append(" ").append(Arrays.toString(arr)).append('\n');
         }
         return "Matrix{" +
                 "rows=" + rows +
