@@ -71,15 +71,13 @@ public class Matrix {
     public Matrix add(final Matrix B)
     {
         if (this.cols != B.cols || this.rows != B.rows) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
-        Matrix result = new Matrix(this.rows, B.cols);
 
         for (int i = 0; i < this.rows; i++) {
             for (int j = 0; j < B.cols; j++) {
-                result.matrix[i][j] += this.matrix[i][j] + B.matrix[i][j];
+                this.matrix[i][j] += B.matrix[i][j];
             }
         }
-
-        return result;
+        return this;
     }
 
     static float[][] add(final float[][] A, final float[][] B) {
@@ -90,15 +88,13 @@ public class Matrix {
 
         if (colsA != colsB || rowsA != rowsB) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
 
-        float[][] result = new float[rowsA][colsB];
-
         for (int i = 0; i < rowsA; i++) {
             for (int j = 0; j < colsB; j++) {
-                result[i][j] += A[i][j] + B[i][j];
+                A[i][j] += B[i][j];
             }
         }
 
-        return result;
+        return A;
     }
 
     public Matrix sub(final Matrix B)
@@ -108,30 +104,11 @@ public class Matrix {
 
         for (int i = 0; i < this.rows; i++) {
             for (int j = 0; j < B.cols; j++) {
-                result.matrix[i][j] += this.matrix[i][j] - B.matrix[i][j];
+                this.matrix[i][j] -= B.matrix[i][j];
             }
         }
 
-        return result;
-    }
-
-    static float[][] sub(final float[][] A, final float[][] B) {
-        int rowsA = A.length;
-        int colsA = A[0].length;
-        int rowsB = B.length;
-        int colsB = B[0].length;
-
-        if (colsA != colsB || rowsA != rowsB) throw new IllegalArgumentException("Matrix A and B must have same dimensions");
-
-        float[][] result = new float[rowsA][colsB];
-
-        for (int i = 0; i < rowsA; i++) {
-            for (int j = 0; j < colsB; j++) {
-                result[i][j] += A[i][j] - B[i][j];
-            }
-        }
-
-        return result;
+        return this;
     }
 
     public Matrix binet_mul(final Matrix B) throws Exception
@@ -141,9 +118,7 @@ public class Matrix {
 
     public Matrix binet_mul(final Matrix B, int l) throws Exception {
         if(this.cols != B.rows) throw new IllegalArgumentException("Matrix A cols must be equal matrix B rows");
-        Matrix ans = new Matrix(this.rows, B.cols);
-
-        ans.matrix = binet_mul(this.getMatrix(), B.getMatrix(), l);
+        Matrix ans = new Matrix(binet_mul(this.getMatrix(), B.getMatrix(), l));
         return ans;
     }
 
@@ -164,43 +139,7 @@ public class Matrix {
             if (rowsA > l) aRowHalf = rowsA / 2;
             if (colsB > l) bColHalf = colsB / 2;
             if (rowsB > l) bRowHalf = rowsB / 2;
-            if(aRowHalf != 0 && aColHalf == 0 && bColHalf == 0 && bRowHalf == 0){//just divide A horizontally
-                Matrix[] split = sliceHorizontal(A, aRowHalf);
-                return mergeVertical(binet_mul(split[0].getMatrix(), B, l), binet_mul(split[1].getMatrix(), B, l));
-            }
-            if(aRowHalf == 0 && aColHalf == 0 && bColHalf != 0 && bRowHalf == 0){//just divide B vertically
-                Matrix[] split = sliceVertical(B, bColHalf);
-                return mergeHorizontal(binet_mul(A, split[0].getMatrix(), l), binet_mul(A, split[1].getMatrix(), l));
-            }
-            if(aRowHalf != 0 && aColHalf == 0 && bColHalf != 0 && bRowHalf == 0){//A horizontally, B vertically
-                Matrix[] splitA = sliceHorizontal(A, aRowHalf);
-                Matrix[] splitB = sliceVertical(B, bColHalf);
-                return mergeVertical(
-                        mergeHorizontal(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[0].getMatrix(), splitB[1].getMatrix(), l)),
-                        mergeHorizontal(binet_mul(splitA[1].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l))
-                );
-            }
-            if(aRowHalf == 0 && aColHalf != 0 && bColHalf == 0 && bRowHalf != 0){//A vertically, B horizontally
-                Matrix[] splitA = sliceVertical(A, aColHalf);
-                Matrix[] splitB = sliceHorizontal(B, bRowHalf);
-                return add(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l));
-            }
-            if(aRowHalf == 0 && aColHalf != 0 && bColHalf != 0 && bRowHalf != 0){//A vertically, B both
-                Matrix[] splitA = sliceVertical(A, aColHalf);
-                Matrix[] splitB = sliceBoth(B, bRowHalf, bColHalf);
-                return add(
-                        mergeHorizontal(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l),binet_mul(splitA[0].getMatrix(), splitB[1].getMatrix(), l)),
-                        mergeHorizontal(binet_mul(splitA[1].getMatrix(), splitB[2].getMatrix(), l),binet_mul(splitA[1].getMatrix(), splitB[3].getMatrix(), l))
-                );
-            }
-            if(aRowHalf != 0 && aColHalf != 0 && bColHalf == 0 && bRowHalf != 0){//A both, B horizontally
-                Matrix[] splitA = sliceBoth(A, aRowHalf, aColHalf);
-                Matrix[] splitB = sliceHorizontal(B, bRowHalf);
-                return add(
-                        mergeVertical(binet_mul(splitA[0].getMatrix(), splitB[0].getMatrix(), l), binet_mul(splitA[2].getMatrix(), splitB[0].getMatrix(), l)),
-                        mergeVertical(binet_mul(splitA[1].getMatrix(), splitB[1].getMatrix(), l), binet_mul(splitA[3].getMatrix(), splitB[1].getMatrix(), l))
-                );
-            }
+
             if(aRowHalf != 0 && aColHalf != 0 && bColHalf != 0 && bRowHalf != 0){//A both, B both
                 Matrix[] splitA = sliceBoth(A, aRowHalf, aColHalf);
                 Matrix[] splitB = sliceBoth(B, bRowHalf, bColHalf);
@@ -219,36 +158,6 @@ public class Matrix {
                 throw new Exception("Something went terribly wrong");
             }
         }
-    }
-
-    static public Matrix[] sliceVertical(final float[][] M, int sliceIndex) throws Exception{
-        float[][] firstHalf = new float[M.length][sliceIndex];
-        float[][] secondHalf = new float[M.length][M[0].length - sliceIndex];
-        Matrix[] res = new Matrix[2];
-        for(int i = 0 ; i < M.length; i++){
-            System.arraycopy(M[i], 0, firstHalf[i], 0, sliceIndex);
-        }
-        for(int i = 0 ; i < M.length; i++){
-            System.arraycopy(M[i], sliceIndex, secondHalf[i], 0, M[0].length - sliceIndex);
-        }
-        res[0] = new Matrix(firstHalf);
-        res[1] = new Matrix(secondHalf);
-        return res;
-    }
-
-    static public Matrix[] sliceHorizontal(final float[][] M, int sliceIndex) throws Exception{
-        float[][] firstHalf = new float[sliceIndex][M[0].length];
-        float[][] secondHalf = new float[M.length - sliceIndex][M[0].length];
-        Matrix[] res = new Matrix[2];
-        for(int i = 0 ; i < sliceIndex; i++){
-            System.arraycopy(M[i], 0, firstHalf[i], 0, M[0].length);
-        }
-        for(int i = 0 ; i < M.length - sliceIndex; i++){
-            System.arraycopy(M[i + sliceIndex], 0, secondHalf[i], 0, M[0].length);
-        }
-        res[0] = new Matrix(firstHalf);
-        res[1] = new Matrix(secondHalf);
-        return res;
     }
 
     static public Matrix[] sliceBoth(final float[][] M, int sliceRowIndex, int sliceColIndex) throws Exception{
