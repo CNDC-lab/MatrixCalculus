@@ -308,12 +308,9 @@ public class Matrix {
         return determinant(this.matrix);
     }
 
-    static public float determinant(float[][] matrix) throws Exception
-    {
+    static public float determinant(float[][] matrix) throws Exception {
         int index, n = matrix.length;
-        float num1, num2, total = 1, det = 1;
-
-        float[] temp = new float[n + 1];
+        float num, total = 1, det = 1;
 
         if(n == 2)
         {
@@ -340,19 +337,16 @@ public class Matrix {
                 det = (int)(det * Math.pow(-1, index - i));
             }
 
-            System.arraycopy(matrix[i], 0, temp, 0, n);
-
             for (int j = i + 1; j < n; j++)
             {
-                num1 = temp[i];
-                num2 = matrix[j][i];
+                num = matrix[j][i];
 
                 for (int k = 0; k < n; k++)
                 {
-                    matrix[j][k] = (num1 * matrix[j][k])
-                            - (num2 * temp[k]);
+                    matrix[j][k] = (matrix[i][i] * matrix[j][k])
+                            - (num * matrix[i][k]);
                 }
-                total = total * num1;
+                total = total * matrix[i][i];
             }
         }
         for (int i = 0; i < n; i++)
