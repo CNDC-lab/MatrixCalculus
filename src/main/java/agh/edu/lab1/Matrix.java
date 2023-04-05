@@ -368,9 +368,9 @@ public class Matrix {
         return new Matrix(recursiveInverse(this.matrix));
     }
 
-        static public float[][] recursiveInverse(float[][] matrix) throws Exception
+    static public float[][] recursiveInverse(float[][] matrix) throws Exception
     {
-        if((matrix.length & matrix.length - 1) != 0) throw new Exception("The matrix must be size of 2^n x 2^n");
+        if((matrix.length & matrix[0].length - 1) != 0) throw new Exception("The matrix must be size of 2^n x 2^n");
         float[][] det = new float[matrix.length][matrix.length];
         for(int i = 0 ; i < matrix.length; i++){
             System.arraycopy(matrix[i], 0, det[i], 0, matrix[0].length);
@@ -420,6 +420,69 @@ public class Matrix {
                 mergeHorizontal(splitedAns[0].matrix, splitedAns[1].matrix),
                 mergeHorizontal(splitedAns[2].matrix, splitedAns[3].matrix)
         );
+    }
+
+    public Matrix[] recursiveLU() throws Exception
+    {
+        Matrix[] LU = new Matrix[2];
+        float[][][] lu = recursiveLU(matrix);
+        LU[0] = new Matrix(lu[0]);
+        LU[1] = new Matrix(lu[1]);
+        return LU;
+    }
+
+    static public float[][][] recursiveLU(float[][] matrix) throws Exception
+    {
+        if((matrix.length & matrix[0].length - 1) != 0) throw new Exception("The matrix must be size of 2^n x 2^n");
+        float[][][] lu_ans = new float[2][matrix.length][matrix.length];
+
+        if(matrix.length == 2)
+        {
+            float[][] l = new float[matrix.length][matrix.length];
+            float[][] u = new float[matrix.length][matrix.length];
+
+            u[0][0] = matrix[0][0];
+            u[0][1] = matrix[0][1];
+            l[1][0] = matrix[1][0] / u[0][0];
+            u[1][1] = matrix[1][1] - l[1][0] * u[0][1];
+            l[0][0] = 1;
+            l[0][1] = 0;
+            l[1][1] = 1;
+
+            lu_ans[0] = l;
+            lu_ans[1] = u;
+
+            return lu_ans;
+        }
+
+        Matrix[] splited = sliceBoth(matrix, matrix.length / 2, matrix.length / 2);
+        Matrix[] l_splited = sliceBoth(lu_ans[0], matrix.length / 2, matrix.length / 2);
+        Matrix[] u_splited = sliceBoth(lu_ans[1], matrix.length / 2, matrix.length / 2);
+
+        Matrix[] lu_11 = splited[0].recursiveLU();
+        l_splited[0] = lu_11[0];
+        u_splited[0] = lu_11[1];
+
+        Matrix u_11_inv = u_splited[0].recursiveInverse();
+        l_splited[2] = splited[2].binet_mul(u_11_inv);
+
+        Matrix l_11_inv = l_splited[0].recursiveInverse();
+        u_splited[1] = l_11_inv.binet_mul(splited[1]);
+
+        Matrix S = splited[3].sub(splited[2].binet_mul(u_11_inv).binet_mul(l_11_inv).binet_mul(splited[1]));
+        Matrix[] s_lu = S.recursiveLU();
+        l_splited[3] = s_lu[0];
+        u_splited[3] = s_lu[1];
+
+        lu_ans[0] = mergeVertical(
+                mergeHorizontal(l_splited[0].matrix, l_splited[1].matrix),
+                mergeHorizontal(l_splited[2].matrix, l_splited[3].matrix)
+        );
+        lu_ans[1] = mergeVertical(
+                mergeHorizontal(u_splited[0].matrix, u_splited[1].matrix),
+                mergeHorizontal(u_splited[2].matrix, u_splited[3].matrix)
+        );
+        return lu_ans;
     }
 
     public void fillDiagonal(float fillament)
